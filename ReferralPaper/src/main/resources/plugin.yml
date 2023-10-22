@@ -1,0 +1,15 @@
+name: ReferralPaper
+version: '${project.version}'
+main: de.silke.referralpaper.Main
+api-version: '1.18'
+load: STARTUP
+depend: [LuckPerms]
+authors: [Silke]
+description: Реферальная система на ядро Paper
+website: github.com/FruitCraftDev
+commands:
+  referral:
+    description: Команда для работы с реферальной системой
+    usage: /<command> [help|reload]
+    aliases: [ ref, reff ]
+    default: op
