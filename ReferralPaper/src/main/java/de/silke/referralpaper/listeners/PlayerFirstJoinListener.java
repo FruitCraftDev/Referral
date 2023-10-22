@@ -14,36 +14,64 @@ import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.UUID;
 
+@Getter
 @SuppressWarnings("deprection")
 public class PlayerFirstJoinListener implements Listener {
+    @Setter
+    public static boolean isFirstJoin;
+    @Setter
+    public static boolean shouldAskQuestion;
     private final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
-    @Getter @Setter
-    public static boolean isFirstTimePlayerJoin;
-    @Getter @Setter
-    public static boolean needToAskQuestion;
+    public static HashMap<UUID, Boolean> newbies = new HashMap<>();
 
     @EventHandler
     public void onPlayerFirstJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        // TODO: Если игрок заходит в первый раз и его нет в БД, то баг "java.lang.NullPointerException: Cannot invoke "java.lang.Boolean.booleanValue()" because the return value of "java.util.concurrent.CompletableFuture.join()" is null"
-        if (
-                !playerInfoDatabase.containsPlayer(player).join() || // если в БД нет игрока
-                playerInfoDatabase.getTimePlayed(player).join() <= 120000 || // или если игрок играл меньше 2 минут
-                playerInfoDatabase.getReferredPlayerName(player) == null || // или игрок ещё не указал реферала
-                isFirstTimePlayerJoin || // или игрок впервые зашёл на сервер
-                needToAskQuestion) { // или игроку нужно задать вопрос
-            isFirstTimePlayerJoin = true;
-            sendReferralQuestion(player);
+        if (!player.hasPlayedBefore()) {
+            isFirstJoin = true;
+
+            if (!playerInfoDatabase.containsPlayer(player).join()) {
+                if (
+                        playerInfoDatabase.getTimePlayed(player).join() <= 120000 || // or if the player played for less than 2 minutes
+                                playerInfoDatabase.getReferredPlayerName(player) == null || // or the player has not yet specified a referral
+                                isFirstJoin || // or the player entered the server for the first time
+                                shouldAskQuestion) { // or the player needs to ask a question
+                    sendReferralQuestion(player);
+                }
+            } else {
+                // Adding a player to the database
+                playerInfoDatabase.addPlayer(player);
+
+                isFirstJoin = true;
+                shouldAskQuestion = true;
+                sendReferralQuestion(player);
+            }
+            newbies.put(player.getUniqueId(), true);
+        } else {
+            if (playerInfoDatabase.containsPlayer(player).join()) {
+                return;
+            } else {
+                // Adding a player to the database
+                playerInfoDatabase.addPlayer(player);
+
+                isFirstJoin = true;
+                shouldAskQuestion = true;
+                sendReferralQuestion(player);
+            }
+            newbies.put(player.getUniqueId(), true);
         }
 
         // Проверка на заполненность информации об игроке в БД
+        // Также служит для обновления информации об игроке в БД
         if (playerInfoDatabase.getRegistrationDate(player).join() == null) {
             playerInfoDatabase.setRegistrationDate(player, Date.valueOf(LocalDate.now())).join();
         }
 
-        if (playerInfoDatabase.getLuckPermsRole(player).join() == null) {
+        if (playerInfoDatabase.getLuckPermsRole(player).join() == null || playerInfoDatabase.getLuckPermsRole(player).join() != null) {
             playerInfoDatabase.setLuckPermsRole(player, LuckPermsConnector.getGroup(player)).join();
         }
     }

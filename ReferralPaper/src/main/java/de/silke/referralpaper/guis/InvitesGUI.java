@@ -1,4 +1,4 @@
 package de.silke.referralpaper.guis;
 
-public class InvitesGUI  {
+public class InvitesGUI {
 }

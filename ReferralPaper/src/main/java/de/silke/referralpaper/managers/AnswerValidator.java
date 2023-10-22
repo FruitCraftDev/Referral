@@ -8,12 +8,13 @@ import org.bukkit.entity.Player;
 import java.util.List;
 
 public class AnswerValidator {
-    private static final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
     public static final List<String> negativeAnswers = Main.plugin.getConfig().getStringList("answers.negative");
+    private static final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
 
     /**
      * Проверить, является ли ответ игрока положительным
      * <p>Произойдёт проверка на наличие игрока в базе данных
+     *
      * @param answer Ответ игрока (ник)
      * @return true - если игрок есть в базе данных, иначе false
      */
@@ -26,6 +27,7 @@ public class AnswerValidator {
     /**
      * Проверить, является ли ответ игрока отрицательным
      * <p>Большой список ответов на отрицание находится в конфиге
+     *
      * @param answer Ответ игрока
      * @return true - если ответ игрока равен тире, иначе false
      */

@@ -15,7 +15,7 @@ public class AfkInterceptor {
     /**
      * Пометить игрока как AFK или нет
      *
-     * @param uuid UUID игрока
+     * @param uuid  UUID игрока
      * @param isAfk true, если игрок AFK
      */
     public void markPlayerAsAfk(UUID uuid, boolean isAfk) {

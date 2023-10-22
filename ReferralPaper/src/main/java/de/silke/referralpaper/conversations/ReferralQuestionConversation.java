@@ -4,6 +4,7 @@ import de.silke.referralpaper.Main;
 import de.silke.referralpaper.listeners.PlayerFirstJoinListener;
 import de.silke.referralpaper.managers.AnswerValidator;
 import lombok.Data;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.conversations.ConversationContext;
@@ -20,6 +21,7 @@ public class ReferralQuestionConversation {
     private final String agreeMessage = Main.plugin.getConfig().getString("messages.referral-agree");
     private final String agreeMessageNoPlayer = Main.plugin.getConfig().getString("messages.referral-player-not-exists");
     private final String disagreeMessage = Main.plugin.getConfig().getString("messages.referral-disagree");
+
     public ReferralQuestionConversation(Player player) {
 
         conversationFactory = new ConversationFactory(Main.plugin)
@@ -50,11 +52,12 @@ public class ReferralQuestionConversation {
                 // Если игрок ответил отрицательно
                 if (AnswerValidator.isNoAnswer(input)) {
                     if (disagreeMessage != null) {
+                        PlayerFirstJoinListener.setFirstJoin(false);
+                        PlayerFirstJoinListener.setShouldAskQuestion(false);
+                        PlayerFirstJoinListener.newbies.remove(player.getUniqueId());
+
                         player.sendMessage(ChatColor.translateAlternateColorCodes('&', disagreeMessage));
                         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
-
-                        PlayerFirstJoinListener.setFirstTimePlayerJoin(false);
-                        PlayerFirstJoinListener.setNeedToAskQuestion(true);
 
                         // Добавляем реферала в БД
                         if (!Main.plugin.getReferralsDatabaseConnection().containsPlayer(player).join()) {
@@ -74,12 +77,20 @@ public class ReferralQuestionConversation {
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', agreeMessage));
                             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 
-                            PlayerFirstJoinListener.setNeedToAskQuestion(true);
-                            PlayerFirstJoinListener.setFirstTimePlayerJoin(false);
+                            PlayerFirstJoinListener.setShouldAskQuestion(false);
+                            PlayerFirstJoinListener.setFirstJoin(false);
 
                             // Добавляем реферала в БД
                             if (!Main.plugin.getReferralsDatabaseConnection().containsPlayer(player).join()) {
                                 Main.plugin.getReferralsDatabaseConnection().addPlayer(player);
+                            }
+
+                            Player referredPlayer = Bukkit.getOfflinePlayer(input).getPlayer();
+
+                            // Добавляем +1 к количеству указывания реферального игрока
+                            if (Main.plugin.getReferralsDatabaseConnection().containsPlayer(referredPlayer).join()) {
+                                Main.plugin.getReferralsDatabaseConnection().addAmountOfTimesUsed(referredPlayer);
+                                Main.plugin.getReferralsDatabaseConnection().addPlayerToUsedReferralNick(referredPlayer, player);
                             }
 
                             // Устанавливаем, что игрок не отказался от реферала
@@ -99,6 +110,7 @@ public class ReferralQuestionConversation {
                     }
                 }
             } else {
+                // Это вообще не может произойти, но на всякий случай оставим
                 player.sendMessage(ChatColor.RED + "Вы не ввели ник игрока");
                 player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
 

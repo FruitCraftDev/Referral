@@ -201,7 +201,7 @@ public class ReferralsDatabaseConnection {
      * @param player Игрок
      * @return CompletableFuture Завершение установки значения
      */
-    public CompletableFuture<Void> setReferralOwner(Player player) {
+    private CompletableFuture<Void> setReferralOwner(Player player) {
         return CompletableFuture.runAsync(() -> {
             String selectPlayerSQL = "SELECT * FROM referrals WHERE referralOwnerUUID = ?";
             // Проверка на наличие игрока внутри БД
@@ -239,7 +239,7 @@ public class ReferralsDatabaseConnection {
      * @param usedPlayerName Имя игрока, который использовал реферальный ник
      * @return CompletableFuture Завершение добавления значения
      */
-    public CompletableFuture<Void> addPlayerToUsedReferralNick(Player player, String usedPlayerName) {
+    public CompletableFuture<Void> addPlayerToUsedReferralNick(Player player, Player usedPlayerName) {
         return CompletableFuture.runAsync(() -> {
             String selectPlayerSQL = "SELECT * FROM referrals WHERE referralOwnerUUID = ?";
             // Проверка на наличие игрока внутри БД
@@ -258,7 +258,7 @@ public class ReferralsDatabaseConnection {
             // Добавление игрока к значению "playersUsedReferralNick"
             String updatePlayerSQL = "UPDATE referrals SET playersUsedReferralNick = ? WHERE referralOwnerUUID = ?";
             try (PreparedStatement statement = connection.prepareStatement(updatePlayerSQL)) {
-                statement.setString(1, usedPlayerName);
+                statement.setString(1, usedPlayerName.getName());
                 statement.setString(2, player.getUniqueId().toString());
                 statement.executeUpdate();
             } catch (SQLException e) {

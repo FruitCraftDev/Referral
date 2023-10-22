@@ -1,6 +1,6 @@
 package de.silke.referralpaper;
 
-import de.silke.referralpaper.commands.ReferralCommand;
+import de.silke.referralpaper.commands.InvitesCommand;
 import de.silke.referralpaper.configuration.Configurator;
 import de.silke.referralpaper.database.PlayerInfoDatabaseConnection;
 import de.silke.referralpaper.database.ReferralsDatabaseConnection;
@@ -53,7 +53,7 @@ public final class Main extends JavaPlugin {
         referralsDatabaseConnection = new ReferralsDatabaseConnection();
 
         // Регистрация команд
-        getCommand("referral").setExecutor(new ReferralCommand());
+        getCommand("invites").setExecutor(new InvitesCommand());
 
         // Регистрация слушателей
         getServer().getPluginManager().registerEvents(new StartTimeCounterListener(), this);
