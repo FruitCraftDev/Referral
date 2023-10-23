@@ -52,11 +52,10 @@ public class ReferralQuestionConversation {
                 // Если игрок ответил отрицательно
                 if (AnswerValidator.isNoAnswer(input)) {
                     if (disagreeMessage != null) {
-                        PlayerFirstJoinListener.setFirstJoin(false);
-                        PlayerFirstJoinListener.setShouldAskQuestion(false);
                         PlayerFirstJoinListener.newbies.remove(player.getUniqueId());
 
                         player.sendMessage(ChatColor.translateAlternateColorCodes('&', disagreeMessage));
+                        player.sendMessage(disagreeMessage);
                         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 
                         // Добавляем реферала в БД
@@ -68,6 +67,10 @@ public class ReferralQuestionConversation {
                         if (Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(player).join()) {
                             Main.plugin.getPlayerInfoDatabaseConnection().setDeclinedReferQuestion(player, true);
                         }
+
+                        // debug
+                        Main.log.info("Игрок ответил отрицательно");
+
                         return END_OF_CONVERSATION;
                     }
                 } else {
@@ -77,8 +80,7 @@ public class ReferralQuestionConversation {
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', agreeMessage));
                             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 
-                            PlayerFirstJoinListener.setShouldAskQuestion(false);
-                            PlayerFirstJoinListener.setFirstJoin(false);
+                            PlayerFirstJoinListener.newbies.remove(player.getUniqueId());
 
                             // Добавляем реферала в БД
                             if (!Main.plugin.getReferralsDatabaseConnection().containsPlayer(player).join()) {
@@ -87,16 +89,28 @@ public class ReferralQuestionConversation {
 
                             Player referredPlayer = Bukkit.getOfflinePlayer(input).getPlayer();
 
+                            // Добавляем игрока в БД
+                            Main.plugin.getPlayerInfoDatabaseConnection().addPlayer(player);
+
                             // Добавляем +1 к количеству указывания реферального игрока
                             if (Main.plugin.getReferralsDatabaseConnection().containsPlayer(referredPlayer).join()) {
-                                Main.plugin.getReferralsDatabaseConnection().addAmountOfTimesUsed(referredPlayer);
                                 Main.plugin.getReferralsDatabaseConnection().addPlayerToUsedReferralNick(referredPlayer, player);
+                                Main.plugin.getReferralsDatabaseConnection().addAmountOfTimesUsed(referredPlayer);
                             }
 
                             // Устанавливаем, что игрок не отказался от реферала
                             if (Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(player).join()) {
                                 Main.plugin.getPlayerInfoDatabaseConnection().setDeclinedReferQuestion(player, false);
                             }
+
+                            // Устанавливаем реферального игрока
+                            if (Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(player).join()) {
+                                Main.plugin.getPlayerInfoDatabaseConnection().setReferredPlayer(player, referredPlayer);
+                            }
+
+                            // debug
+                            Main.log.info("Игрок ввёл существующий ник");
+
                             return END_OF_CONVERSATION;
                         }
                     } else {
@@ -104,6 +118,9 @@ public class ReferralQuestionConversation {
                         if (agreeMessageNoPlayer != null) {
                             player.sendMessage(ChatColor.translateAlternateColorCodes('&', agreeMessageNoPlayer));
                             player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1, 1);
+
+                            // debug
+                            Main.log.info("Игрок ввёл несуществующий ник");
 
                             return new ReferralQuestionPrompt();
                         }

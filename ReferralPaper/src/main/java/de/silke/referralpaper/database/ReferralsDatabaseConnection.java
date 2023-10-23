@@ -89,7 +89,7 @@ public class ReferralsDatabaseConnection {
                         + "id INT(11) NOT NULL AUTO_INCREMENT,"
                         + "referralOwnerUUID CHAR(36) PRIMARY KEY,"
                         + "referralOwnerName VARCHAR(64),"
-                        + "playersUsedReferralNick VARCHAR(64),"
+                        + "playersUsedReferralNick JSON,"
                         + "amountOfTimesUsed INT(11),"
                         + "UNIQUE KEY id (id)"
                         + ");";
@@ -270,6 +270,43 @@ public class ReferralsDatabaseConnection {
         });
     }
 
+    /**
+     * Получить значение для "playersUsedReferralNick"
+     * @param player Игрок (владелец реферального ника)
+     * @return CompletableFuture Завершение получения значения
+     */
+    public CompletableFuture<String> getPlayersUsedReferralNick(Player player) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM referrals WHERE referralOwnerUUID = ?";
+            // Проверка на наличие игрока внутри БД
+            // Если он существует, то в консоли будет ошибка
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, player.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        Main.log.severe("Игрок " + player.getName() + " уже существует в базе данных!");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"playersUsedReferralNick\": " + e.getMessage());
+            }
+
+            // Получение значения для "playersUsedReferralNick"
+            String selectPlayersUsedReferralNickSQL = "SELECT playersUsedReferralNick FROM referrals WHERE referralOwnerUUID = ?";
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayersUsedReferralNickSQL)) {
+                statement.setString(1, player.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getString("playersUsedReferralNick");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"playersUsedReferralNick\": " + e.getMessage());
+            }
+            return null;
+        });
+    }
+
 
     /**
      * Добавить +1 к значению для "amountOfTimesUsed"
@@ -302,6 +339,43 @@ public class ReferralsDatabaseConnection {
             } catch (SQLException e) {
                 Main.log.severe("Ошибка добавления +1 к значению для \"amountOfTimesUsed\": " + e.getMessage());
             }
+        });
+    }
+
+    /**
+     * Получить значение для "amountOfTimesUsed"
+     * @param player Игрок (владелец реферального ника)
+     * @return CompletableFuture Завершение получения значения
+     */
+    public CompletableFuture<Integer> getAmountOfTimesUsed(Player player) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM referrals WHERE referralOwnerUUID = ?";
+            // Проверка на наличие игрока внутри БД
+            // Если он существует, то в консоли будет ошибка
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, player.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        Main.log.severe("Игрок " + player.getName() + " уже существует в базе данных!");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"amountOfTimesUsed\": " + e.getMessage());
+            }
+
+            // Получение значения для "amountOfTimesUsed"
+            String selectAmountOfTimesUsedSQL = "SELECT amountOfTimesUsed FROM referrals WHERE referralOwnerUUID = ?";
+            try (PreparedStatement statement = connection.prepareStatement(selectAmountOfTimesUsedSQL)) {
+                statement.setString(1, player.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getInt("amountOfTimesUsed");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"amountOfTimesUsed\": " + e.getMessage());
+            }
+            return 0;
         });
     }
 }

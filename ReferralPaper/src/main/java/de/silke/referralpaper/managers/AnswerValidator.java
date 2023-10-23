@@ -3,9 +3,9 @@ package de.silke.referralpaper.managers;
 import de.silke.referralpaper.Main;
 import de.silke.referralpaper.database.PlayerInfoDatabaseConnection;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.UUID;
 
 public class AnswerValidator {
     public static final List<String> negativeAnswers = Main.plugin.getConfig().getStringList("answers.negative");
@@ -19,7 +19,7 @@ public class AnswerValidator {
      * @return true - если игрок есть в базе данных, иначе false
      */
     public static boolean isRealPlayer(String answer) {
-        Player answerPlayer = Bukkit.getOfflinePlayer(answer).getPlayer();
+        UUID answerPlayer = Bukkit.getOfflinePlayer(answer).getUniqueId();
 
         return playerInfoDatabase.containsPlayer(answerPlayer).join() != null;
     }

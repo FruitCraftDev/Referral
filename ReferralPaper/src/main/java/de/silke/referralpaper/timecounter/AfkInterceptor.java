@@ -9,7 +9,6 @@ import java.util.UUID;
 public class AfkInterceptor {
     // 1 минута до того, как игрок будет помечен как AFK
     public final long MAX_AFK_TIME = 60 * 1000;
-    public HashMap<UUID, Long> playersTime = new HashMap<>();
     public HashMap<UUID, Boolean> markedAfkPlayers = new HashMap<>();
 
     /**

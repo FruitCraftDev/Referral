@@ -5,6 +5,7 @@ import lombok.Data;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Data
@@ -130,8 +131,33 @@ public class PlayerInfoDatabaseConnection {
                     Main.log.severe("Ошибка проверки наличия игрока в базе данных: " + e.getMessage());
                 }
             } else {
-//                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
+                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
             }
+            return null;
+        });
+    }
+
+    /**
+     * Проверить наличие игрока в БД по его UUID
+     *
+     * @param playerUUID UUID игрока
+     * @return CompletableFuture Завершение проверки
+     */
+    public CompletableFuture<Boolean> containsPlayer(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+                    if (playerUUID != null) {
+                        String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+                        try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                            statement.setString(1, playerUUID.toString());
+                            try (ResultSet resultSet = statement.executeQuery()) {
+                                return resultSet.next();
+                            }
+                        } catch (SQLException e) {
+                            Main.log.severe("Ошибка проверки наличия игрока в базе данных: " + e.getMessage());
+                        }
+                    } else {
+                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
+                    }
             return null;
         });
     }
@@ -152,7 +178,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " уже существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " уже существует в базе данных! (addPlayer)");
                     }
                 }
             } catch (SQLException e) {
@@ -191,7 +217,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных! (removePlayer)");
                     }
                 }
             } catch (SQLException e) {
@@ -226,7 +252,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных! (setDeclinedReferQuestion)");
                     }
                 }
             } catch (SQLException e) {
@@ -263,7 +289,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных! (setReferredPlayer)");
                     }
                 }
             } catch (SQLException e) {
@@ -300,7 +326,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (setLuckPermsRole)!");
                     }
                 }
             } catch (SQLException e) {
@@ -337,7 +363,7 @@ public class PlayerInfoDatabaseConnection {
 
                     // Если игрока нет в БД, то возвращаем null
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (addTimePlayed)!");
                         return;
                     }
                 }
@@ -374,7 +400,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (setRegistrationDate)!");
                     }
                 }
             } catch (SQLException e) {
@@ -409,7 +435,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (getDeclinedReferQuestion)!");
                     }
                 }
             } catch (SQLException e) {
@@ -487,7 +513,7 @@ public class PlayerInfoDatabaseConnection {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (getReferredPlayerName)!");
                     }
                 }
             } catch (SQLException e) {
@@ -527,7 +553,7 @@ public class PlayerInfoDatabaseConnection {
                 try (ResultSet resultSet = statement.executeQuery()) {
                     // Если игрока нет в БД, то возвращаем null
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (getLuckPermsRole)!");
                         return null;
                     }
                 }
@@ -568,7 +594,7 @@ public class PlayerInfoDatabaseConnection {
 
                     // Если игрока нет в БД, то возвращаем null
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (getTimePlayed)!");
                         return null;
                     }
                 }
@@ -609,7 +635,7 @@ public class PlayerInfoDatabaseConnection {
 
                     // Если игрока нет в БД, то возвращаем null
                     if (!resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных!");
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных (getRegistrationDate)!");
                         return null;
                     }
                 }

@@ -1,5 +1,6 @@
 package de.silke.referralpaper.commands;
 
+import de.silke.referralpaper.guis.InvitesGUI;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -16,7 +17,7 @@ public class InvitesCommand implements CommandExecutor {
 
             if (args.length == 0) {
                 if (player.hasPermission("referralpaper.invites") || player.hasPermission("referralpaper.admin") || player.hasPermission("referralpaper.*") || player.isOp()) {
-//                    new InvitesGUI(player);
+                    new InvitesGUI(player);
                 }
             }
         }

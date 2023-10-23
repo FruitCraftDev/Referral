@@ -1,5 +1,6 @@
 package de.silke.referralpaper;
 
+import de.silke.referralpaper.commands.AdminInvitesCommand;
 import de.silke.referralpaper.commands.InvitesCommand;
 import de.silke.referralpaper.configuration.Configurator;
 import de.silke.referralpaper.database.PlayerInfoDatabaseConnection;
@@ -8,6 +9,8 @@ import de.silke.referralpaper.listeners.AfkPlayerListener;
 import de.silke.referralpaper.listeners.PlayerFirstJoinListener;
 import de.silke.referralpaper.listeners.StartTimeCounterListener;
 import de.silke.referralpaper.listeners.StopPlayerMovingListener;
+import de.silke.referralpaper.timecounter.PlayerTimeManager;
+import de.silke.referralpaper.timecounter.PlaytimeUpdateTask;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -22,6 +25,8 @@ public final class Main extends JavaPlugin {
     private final String version = this.getDescription().getVersion();
     private PlayerInfoDatabaseConnection playerInfoDatabaseConnection;
     private ReferralsDatabaseConnection referralsDatabaseConnection;
+    private PlayerTimeManager playerTimeManager;
+    private PlaytimeUpdateTask playtimeUpdateTask;
 
     @Override
     public void onEnable() {
@@ -52,8 +57,16 @@ public final class Main extends JavaPlugin {
         playerInfoDatabaseConnection = new PlayerInfoDatabaseConnection();
         referralsDatabaseConnection = new ReferralsDatabaseConnection();
 
+        // Определяем счётчики игрового времени
+        playerTimeManager = new PlayerTimeManager();
+        playtimeUpdateTask = new PlaytimeUpdateTask(playerTimeManager);
+        if (!playerTimeManager.getPlayerStartTimes().isEmpty()) {
+            playtimeUpdateTask.runTaskTimer(this, 0L, 20 * 30); // 30 секунд
+        }
+
         // Регистрация команд
         getCommand("invites").setExecutor(new InvitesCommand());
+        getCommand("admininvites").setExecutor(new AdminInvitesCommand());
 
         // Регистрация слушателей
         getServer().getPluginManager().registerEvents(new StartTimeCounterListener(), this);
@@ -64,6 +77,10 @@ public final class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // Перед завершением работы необходимо убедиться, что все ожидающие обновления завершены
+        playtimeUpdateTask.cancel();
+        playtimeUpdateTask.run();
+
         // Отключение от базы данных
         if (playerInfoDatabaseConnection != null) {
             playerInfoDatabaseConnection.close();

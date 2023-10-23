@@ -20,11 +20,8 @@ import java.util.UUID;
 @Getter
 @SuppressWarnings("deprection")
 public class PlayerFirstJoinListener implements Listener {
-    @Setter
-    public static boolean isFirstJoin;
-    @Setter
-    public static boolean shouldAskQuestion;
     private final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
+    @Getter @Setter
     public static HashMap<UUID, Boolean> newbies = new HashMap<>();
 
     @EventHandler
@@ -32,22 +29,21 @@ public class PlayerFirstJoinListener implements Listener {
         Player player = event.getPlayer();
 
         if (!player.hasPlayedBefore()) {
-            isFirstJoin = true;
+            newbies.put(player.getUniqueId(), true);
 
             if (!playerInfoDatabase.containsPlayer(player).join()) {
                 if (
-                        playerInfoDatabase.getTimePlayed(player).join() <= 120000 || // or if the player played for less than 2 minutes
-                                playerInfoDatabase.getReferredPlayerName(player) == null || // or the player has not yet specified a referral
-                                isFirstJoin || // or the player entered the server for the first time
-                                shouldAskQuestion) { // or the player needs to ask a question
+                        playerInfoDatabase.getTimePlayed(player).join() <= 120000 || // игрок играл меньше 2 минут
+                        playerInfoDatabase.getReferredPlayerName(player) == null || // или игрок не указал реферала
+                        newbies.containsKey(player.getUniqueId()) && newbies.get(player.getUniqueId())) // или игрок в newbies
+                {
                     sendReferralQuestion(player);
                 }
             } else {
-                // Adding a player to the database
-                playerInfoDatabase.addPlayer(player);
+                // Добавляем игрока в БД
+//                playerInfoDatabase.addPlayer(player);
 
-                isFirstJoin = true;
-                shouldAskQuestion = true;
+                newbies.put(player.getUniqueId(), true);
                 sendReferralQuestion(player);
             }
             newbies.put(player.getUniqueId(), true);
@@ -55,11 +51,10 @@ public class PlayerFirstJoinListener implements Listener {
             if (playerInfoDatabase.containsPlayer(player).join()) {
                 return;
             } else {
-                // Adding a player to the database
-                playerInfoDatabase.addPlayer(player);
+                // Добавляем игрока в БД
+//                playerInfoDatabase.addPlayer(player);
 
-                isFirstJoin = true;
-                shouldAskQuestion = true;
+                newbies.put(player.getUniqueId(), true);
                 sendReferralQuestion(player);
             }
             newbies.put(player.getUniqueId(), true);
