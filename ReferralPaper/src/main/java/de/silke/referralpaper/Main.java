@@ -31,55 +31,55 @@ public final class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         plugin = this;
-
-        // Оповещение о включении плагина
-        // TODO: Лог об инициализации только после подключения к бд и т.д
         log.info("v" + version + " инициализирован!");
 
-        // Создание папки для конфигурации
-        Configurator.createFolder();
+        // Инициализация
+        getServer().getScheduler().runTask(this, () -> {
+            // Создание папки для конфигурации
+            Configurator.createFolder();
 
-        // Создание файла конфигурации
-        Configurator.createConfig();
+            // Создание файла конфигурации
+            Configurator.createConfig();
 
-        // Создание файла наград
-        Configurator.createRewards();
+            // Создание файла наград
+            Configurator.createRewards();
 
-        // Проверка наличия LuckPerms
-        if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
-            log.warning("LuckPerms не найден");
-            Bukkit.getPluginManager().disablePlugin(this);
-        } else {
-            log.info("LuckPerms найден");
-        }
+            // Проверка наличия LuckPerms
+            if (Bukkit.getPluginManager().getPlugin("LuckPerms") == null) {
+                log.warning("LuckPerms не найден");
+                Bukkit.getPluginManager().disablePlugin(this);
+            } else {
+                log.info("LuckPerms найден");
+            }
 
-        // Подключение к базе данных
-        playerInfoDatabaseConnection = new PlayerInfoDatabaseConnection();
-        referralsDatabaseConnection = new ReferralsDatabaseConnection();
+            // Подключение к базе данных
+            playerInfoDatabaseConnection = new PlayerInfoDatabaseConnection();
+            referralsDatabaseConnection = new ReferralsDatabaseConnection();
 
-        // Определяем счётчики игрового времени
-        playerTimeManager = new PlayerTimeManager();
-        playtimeUpdateTask = new PlaytimeUpdateTask(playerTimeManager);
-        if (!playerTimeManager.getPlayerStartTimes().isEmpty()) {
+            // Определяем счётчики игрового времени
+            playerTimeManager = new PlayerTimeManager();
+            playtimeUpdateTask = new PlaytimeUpdateTask(playerTimeManager);
             playtimeUpdateTask.runTaskTimer(this, 0L, 20 * 30); // 30 секунд
-        }
 
-        // Регистрация команд
-        getCommand("invites").setExecutor(new InvitesCommand());
-        getCommand("admininvites").setExecutor(new AdminInvitesCommand());
+            // Регистрация команд
+            getCommand("invites").setExecutor(new InvitesCommand());
+            getCommand("admininvites").setExecutor(new AdminInvitesCommand());
 
-        // Регистрация слушателей
-        getServer().getPluginManager().registerEvents(new StartTimeCounterListener(), this);
-        getServer().getPluginManager().registerEvents(new AfkPlayerListener(), this);
-        getServer().getPluginManager().registerEvents(new PlayerFirstJoinListener(), this);
-        getServer().getPluginManager().registerEvents(new StopPlayerMovingListener(), this);
+            // Регистрация слушателей
+            getServer().getPluginManager().registerEvents(new StartTimeCounterListener(), this);
+            getServer().getPluginManager().registerEvents(new AfkPlayerListener(), this);
+            getServer().getPluginManager().registerEvents(new PlayerFirstJoinListener(), this);
+            getServer().getPluginManager().registerEvents(new StopPlayerMovingListener(), this);
+        });
     }
 
     @Override
     public void onDisable() {
-        // Перед завершением работы необходимо убедиться, что все ожидающие обновления завершены
-        playtimeUpdateTask.cancel();
-        playtimeUpdateTask.run();
+        if (playtimeUpdateTask != null) {
+            // Перед завершением работы необходимо убедиться, что все ожидающие обновления завершены
+            playtimeUpdateTask.cancel();
+            playtimeUpdateTask.run();
+        }
 
         // Отключение от базы данных
         if (playerInfoDatabaseConnection != null) {

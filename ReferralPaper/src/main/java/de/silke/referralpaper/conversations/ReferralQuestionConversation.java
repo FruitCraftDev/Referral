@@ -4,7 +4,6 @@ import de.silke.referralpaper.Main;
 import de.silke.referralpaper.listeners.PlayerFirstJoinListener;
 import de.silke.referralpaper.managers.AnswerValidator;
 import lombok.Data;
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.conversations.ConversationContext;
@@ -14,6 +13,8 @@ import org.bukkit.conversations.StringPrompt;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 @Data
 public class ReferralQuestionConversation {
@@ -58,6 +59,11 @@ public class ReferralQuestionConversation {
                         player.sendMessage(disagreeMessage);
                         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1, 1);
 
+                        // Добавляем игрока в БД
+                        if (!Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(player).join()) {
+                            Main.plugin.getPlayerInfoDatabaseConnection().addPlayer(player);
+                        }
+
                         // Добавляем реферала в БД
                         if (!Main.plugin.getReferralsDatabaseConnection().containsPlayer(player).join()) {
                             Main.plugin.getReferralsDatabaseConnection().addPlayer(player);
@@ -82,19 +88,21 @@ public class ReferralQuestionConversation {
 
                             PlayerFirstJoinListener.newbies.remove(player.getUniqueId());
 
+                            // Добавляем игрока в БД
+                            if (!Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(player).join()) {
+                                Main.plugin.getPlayerInfoDatabaseConnection().addPlayer(player);
+                            }
+
                             // Добавляем реферала в БД
                             if (!Main.plugin.getReferralsDatabaseConnection().containsPlayer(player).join()) {
                                 Main.plugin.getReferralsDatabaseConnection().addPlayer(player);
                             }
 
-                            Player referredPlayer = Bukkit.getOfflinePlayer(input).getPlayer();
-
-                            // Добавляем игрока в БД
-                            Main.plugin.getPlayerInfoDatabaseConnection().addPlayer(player);
+                            UUID referredPlayer = Main.plugin.getPlayerInfoDatabaseConnection().getPlayerUUID(input).join();
 
                             // Добавляем +1 к количеству указывания реферального игрока
                             if (Main.plugin.getReferralsDatabaseConnection().containsPlayer(referredPlayer).join()) {
-                                Main.plugin.getReferralsDatabaseConnection().addPlayerToUsedReferralNick(referredPlayer, player);
+                                Main.plugin.getReferralsDatabaseConnection().addPlayerToUsedReferralNick(referredPlayer, player.getName());
                                 Main.plugin.getReferralsDatabaseConnection().addAmountOfTimesUsed(referredPlayer);
                             }
 
