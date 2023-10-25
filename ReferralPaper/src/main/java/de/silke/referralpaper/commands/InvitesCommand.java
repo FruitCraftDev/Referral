@@ -17,7 +17,7 @@ public class InvitesCommand implements CommandExecutor {
 
             if (args.length == 0) {
                 if (player.hasPermission("referralpaper.invites") || player.hasPermission("referralpaper.admin") || player.hasPermission("referralpaper.*") || player.isOp()) {
-                    new InvitesGUI(player);
+                    new InvitesGUI(player, null);
                 }
             }
         }
