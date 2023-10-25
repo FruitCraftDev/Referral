@@ -20,9 +20,9 @@ import java.util.UUID;
 @Getter
 @SuppressWarnings("deprection")
 public class PlayerFirstJoinListener implements Listener {
-    private final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
-    @Getter @Setter
+    @Setter
     public static HashMap<UUID, Boolean> newbies = new HashMap<>();
+    private final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
 
     @EventHandler
     public void onPlayerFirstJoin(PlayerJoinEvent event) {
@@ -34,8 +34,8 @@ public class PlayerFirstJoinListener implements Listener {
             if (!playerInfoDatabase.containsPlayer(player).join()) {
                 if (
                         playerInfoDatabase.getTimePlayed(player).join() <= 120000 || // игрок играл меньше 2 минут
-                        playerInfoDatabase.getReferredPlayerName(player) == null || // или игрок не указал реферала
-                        newbies.containsKey(player.getUniqueId()) && newbies.get(player.getUniqueId())) // или игрок в newbies
+                                playerInfoDatabase.getReferredPlayerName(player) == null || // или игрок не указал реферала
+                                newbies.containsKey(player.getUniqueId()) && newbies.get(player.getUniqueId())) // или игрок в newbies
                 {
                     sendReferralQuestion(player);
                 }
@@ -60,14 +60,16 @@ public class PlayerFirstJoinListener implements Listener {
             newbies.put(player.getUniqueId(), true);
         }
 
-        // Проверка на заполненность информации об игроке в БД
-        // Также служит для обновления информации об игроке в БД
-        if (playerInfoDatabase.getRegistrationDate(player).join() == null) {
-            playerInfoDatabase.setRegistrationDate(player, Date.valueOf(LocalDate.now())).join();
-        }
+        if (playerInfoDatabase.containsPlayer(player).join()) {
+            // Проверка на заполненность информации об игроке в БД
+            // Также служит для обновления информации об игроке в БД
+            if (playerInfoDatabase.getRegistrationDate(player).join() == null) {
+                playerInfoDatabase.setRegistrationDate(player, Date.valueOf(LocalDate.now())).join();
+            }
 
-        if (playerInfoDatabase.getLuckPermsRole(player).join() == null || playerInfoDatabase.getLuckPermsRole(player).join() != null) {
-            playerInfoDatabase.setLuckPermsRole(player, LuckPermsConnector.getGroup(player)).join();
+            if (playerInfoDatabase.getLuckPermsRole(player).join() == null || playerInfoDatabase.getLuckPermsRole(player).join() != null) {
+                playerInfoDatabase.setLuckPermsRole(player, LuckPermsConnector.getGroup(player)).join();
+            }
         }
     }
 
