@@ -2,6 +2,7 @@ package de.silke.referralpaper.database;
 
 import de.silke.referralpaper.Main;
 import lombok.Data;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.sql.*;
@@ -18,9 +19,8 @@ public class PlayerInfoDatabaseConnection {
     private static final String PASSWORD = Main.plugin.getConfig().getString("database.password");
     private static final boolean useSSL = Main.plugin.getConfig().getBoolean("database.useSSL");
     private static final boolean autoReconnect = Main.plugin.getConfig().getBoolean("database.autoReconnect");
+    private DatabaseConnectionManager connectionManager;
     private Connection connection;
-
-    // TODO: Баг с застоем подключения к БД. Создать пул подключений
 
     public PlayerInfoDatabaseConnection() {
         if (connection == null) initializeDatabase().join();
@@ -35,8 +35,10 @@ public class PlayerInfoDatabaseConnection {
         return CompletableFuture.runAsync(() -> {
             try {
                 Class.forName("com.mysql.jdbc.Driver");
-                String url = "jdbc:mysql://" + HOST + ":" + PORT + "/" + DATABASE + "?useSSL=" + useSSL + "&autoReconnect=" + autoReconnect;
-                connection = DriverManager.getConnection(url, USERNAME, PASSWORD);
+                connectionManager = new DatabaseConnectionManager(
+                        "jdbc:mysql://" + HOST + ":" + PORT + "/" + DATABASE + "?useSSL=" + useSSL + "&autoReconnect=" + autoReconnect, USERNAME, PASSWORD,
+                        60000);
+                connection = connectionManager.getConnection();
                 createTable().join();
             } catch (ClassNotFoundException | SQLException e) {
                 Main.log.severe("Ошибка подключения к базе данных: " + e.getMessage());
@@ -54,6 +56,7 @@ public class PlayerInfoDatabaseConnection {
         return CompletableFuture.runAsync(() -> {
             try {
                 if (connection != null) {
+                    connectionManager.close();
                     connection.close();
                 }
             } catch (SQLException e) {
@@ -73,16 +76,6 @@ public class PlayerInfoDatabaseConnection {
             initializeDatabase().join();
         });
     }
-
-    // We store:
-    // - Player's UUID
-    // - Player's name
-    // - Boolean, if player declined an question to refer someone or not
-    // - If player referred someone, we store referred player's UUID
-    // - If player referred someone, we store referred player's name
-    // - LuckPerms Role
-    // - Amount of time played on all servers
-    // - Date of registration
 
     /**
      * Создать таблицу в базе данных
@@ -131,7 +124,8 @@ public class PlayerInfoDatabaseConnection {
                     Main.log.severe("Ошибка проверки наличия игрока в базе данных: " + e.getMessage());
                 }
             } else {
-                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
+//                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
+                return CompletableFuture.completedFuture(false).join();
             }
             return null;
         });
@@ -145,19 +139,20 @@ public class PlayerInfoDatabaseConnection {
      */
     public CompletableFuture<Boolean> containsPlayer(UUID playerUUID) {
         return CompletableFuture.supplyAsync(() -> {
-                    if (playerUUID != null) {
-                        String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
-                        try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
-                            statement.setString(1, playerUUID.toString());
-                            try (ResultSet resultSet = statement.executeQuery()) {
-                                return resultSet.next();
-                            }
-                        } catch (SQLException e) {
-                            Main.log.severe("Ошибка проверки наличия игрока в базе данных: " + e.getMessage());
-                        }
-                    } else {
-                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
+            if (playerUUID != null) {
+                String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+                try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                    statement.setString(1, playerUUID.toString());
+                    try (ResultSet resultSet = statement.executeQuery()) {
+                        return resultSet.next();
                     }
+                } catch (SQLException e) {
+                    Main.log.severe("Ошибка проверки наличия игрока в базе данных: " + e.getMessage());
+                }
+            } else {
+//                Main.log.severe("Ошибка проверки наличия игрока в базе данных: Игрок не найден!");
+                return CompletableFuture.completedFuture(false).join();
+            }
             return null;
         });
     }
@@ -177,9 +172,7 @@ public class PlayerInfoDatabaseConnection {
             try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
                 statement.setString(1, player.getUniqueId().toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
-                    if (resultSet.next()) {
-                        Main.log.severe("Игрок " + player.getName() + " уже существует в базе данных! (addPlayer)");
-                    }
+                    resultSet.next();
                 }
             } catch (SQLException e) {
                 Main.log.severe("Ошибка добавления игрока в базу данных: " + e.getMessage());
@@ -232,6 +225,35 @@ public class PlayerInfoDatabaseConnection {
             } catch (SQLException e) {
                 Main.log.severe("Ошибка удаления игрока из базы данных: " + e.getMessage());
             }
+        });
+    }
+
+    /**
+     * Получить ник игрока по его UUID
+     *
+     * @param playerUUID UUID игрока
+     * @return CompletableFuture Завершение получения ника игрока
+     */
+    public CompletableFuture<String> getPlayerName(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+            // Проверка на наличие игрока внутри БД
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+
+                    // Если игрока нет в БД, то возвращаем null
+                    if (!resultSet.next()) {
+//                        Main.log.severe("Игрок с UUID " + playerUUID.toString() + " не существует в базе данных! (getPlayerName)");
+                        return null;
+                    }
+
+                    return resultSet.getString("player_name");
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения ника игрока: " + e.getMessage());
+            }
+            return null;
         });
     }
 
@@ -301,6 +323,44 @@ public class PlayerInfoDatabaseConnection {
             try (PreparedStatement statement = connection.prepareStatement(updatePlayerSQL)) {
                 statement.setString(1, referredPlayer.getUniqueId().toString());
                 statement.setString(2, referredPlayer.getName());
+                statement.setString(3, player.getUniqueId().toString());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка установки значения для \"referredPlayerUUID\" и \"referredPlayerName\": " + e.getMessage());
+            }
+        });
+    }
+
+    /**
+     * Автоматически установить значения для "referredPlayerUUID" и "referredPlayerName"
+     * <p>referredPlayerUUID - UUID игрока, который пригласил игрока
+     * <p>referredPlayerName - Имя игрока, который пригласил игрока
+     *
+     * @param player             Игрок
+     * @param referredPlayerUUID UUID игрока, который пригласил игрока
+     * @return CompletableFuture Завершение установки значения
+     */
+    public CompletableFuture<Void> setReferredPlayer(Player player, UUID referredPlayerUUID) {
+        return CompletableFuture.runAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+            // Проверка на наличие игрока внутри БД
+            // Если он не существует, то в консоли будет ошибка
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, player.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (!resultSet.next()) {
+                        Main.log.severe("Игрок " + player.getName() + " не существует в базе данных! (setReferredPlayer)");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка установки значения для \"referredPlayerUUID\" и \"referredPlayerName\": " + e.getMessage());
+            }
+
+            // Установка значения для "referredPlayerUUID" и "referredPlayerName"
+            String updatePlayerSQL = "UPDATE player_information SET referredPlayerUUID = ?, referredPlayerName = ? WHERE uuid = ?";
+            try (PreparedStatement statement = connection.prepareStatement(updatePlayerSQL)) {
+                statement.setString(1, referredPlayerUUID.toString());
+                statement.setString(2, Bukkit.getOfflinePlayer(referredPlayerUUID).getName());
                 statement.setString(3, player.getUniqueId().toString());
                 statement.executeUpdate();
             } catch (SQLException e) {
@@ -416,6 +476,44 @@ public class PlayerInfoDatabaseConnection {
             } catch (SQLException e) {
                 Main.log.severe("Ошибка установки значения для \"registrationDate\": " + e.getMessage());
             }
+        });
+    }
+
+    /**
+     * Получить UUID игрока по его нику
+     *
+     * @param playerName Ник игрока
+     * @return CompletableFuture Завершение получения UUID
+     */
+    public CompletableFuture<UUID> getPlayerUUID(String playerName) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM player_information WHERE player_name = ?";
+            // Проверка на наличие игрока внутри БД
+            // Если он не существует, то возвращаем null
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, playerName);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (!resultSet.next()) {
+                        return null;
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения UUID игрока по его нику: " + e.getMessage());
+            }
+
+            // Получение UUID игрока по его нику
+            String getPlayerSQL = "SELECT uuid FROM player_information WHERE player_name = ?";
+            try (PreparedStatement statement = connection.prepareStatement(getPlayerSQL)) {
+                statement.setString(1, playerName);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return UUID.fromString(resultSet.getString("uuid"));
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения UUID игрока по его нику: " + e.getMessage());
+            }
+            return null;
         });
     }
 
@@ -537,6 +635,45 @@ public class PlayerInfoDatabaseConnection {
     }
 
     /**
+     * Получить значение "referredPlayerUUID" по UUID игрока
+     * <p>referredPlayerUUID - UUID игрока, который пригласил игрока
+     *
+     * @param playerUUID UUID игрока
+     * @return CompletableFuture Завершение получения значения
+     */
+    public CompletableFuture<String> getReferredPlayerName(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+            // Проверка на наличие игрока внутри БД
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    // Если игрока нет в БД, то возвращаем null
+                    if (!resultSet.next()) {
+                        return null;
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"referredPlayerName\": " + e.getMessage());
+            }
+
+            // Получение значения для "referredPlayerUUID"
+            String getPlayerSQL = "SELECT referredPlayerName FROM player_information WHERE uuid = ?";
+            try (PreparedStatement statement = connection.prepareStatement(getPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getString("referredPlayerName");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"referredPlayerName\": " + e.getMessage());
+            }
+            return null;
+        });
+    }
+
+    /**
      * Получить значение "luckPermsRole"
      * <p>luckPermsRole - роль игрока в LuckPerms
      *
@@ -619,6 +756,46 @@ public class PlayerInfoDatabaseConnection {
     }
 
     /**
+     * Получить значение "timePlayed" по UUID игрока
+     * <p>timePlayed - время, которое игрок провёл на всех серверах (миллисекунды)
+     *
+     * @param playerUUID UUID игрока
+     * @return CompletableFuture Завершение получения значения
+     */
+    public CompletableFuture<Long> getTimePlayed(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+            // Проверка на наличие игрока внутри БД
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    // Если игрока нет в БД, то возвращаем null
+                    if (!resultSet.next()) {
+//                        Main.log.severe("Игрок с UUID " + playerUUID.toString() + " не существует в базе данных (getTimePlayed)!");
+                        return null;
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"timePlayed\": " + e.getMessage());
+            }
+
+            // Получение значения для "timePlayed"
+            String getPlayerSQL = "SELECT timePlayed FROM player_information WHERE uuid = ?";
+            try (PreparedStatement statement = connection.prepareStatement(getPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getLong("timePlayed");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"timePlayed\": " + e.getMessage());
+            }
+            return null;
+        });
+    }
+
+    /**
      * Получить значение "registrationDate"
      * <p>registrationDate - дата регистрации игрока
      *
@@ -647,6 +824,46 @@ public class PlayerInfoDatabaseConnection {
             String getPlayerSQL = "SELECT registrationDate FROM player_information WHERE uuid = ?";
             try (PreparedStatement statement = connection.prepareStatement(getPlayerSQL)) {
                 statement.setString(1, player.getUniqueId().toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        return resultSet.getDate("registrationDate");
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"registrationDate\": " + e.getMessage());
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Получить значение "registrationDate" по UUID игрока
+     * <p>registrationDate - дата регистрации игрока
+     *
+     * @param playerUUID UUID игрока
+     * @return CompletableFuture Завершение получения значения
+     */
+    public CompletableFuture<Date> getRegistrationDate(UUID playerUUID) {
+        return CompletableFuture.supplyAsync(() -> {
+            String selectPlayerSQL = "SELECT * FROM player_information WHERE uuid = ?";
+            // Проверка на наличие игрока внутри БД
+            try (PreparedStatement statement = connection.prepareStatement(selectPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    // Если игрока нет в БД, то возвращаем null
+                    if (!resultSet.next()) {
+                        Main.log.severe("Игрок с UUID " + playerUUID + " не существует в базе данных (getRegistrationDate)!");
+                        return null;
+                    }
+                }
+            } catch (SQLException e) {
+                Main.log.severe("Ошибка получения значения для \"registrationDate\": " + e.getMessage());
+            }
+
+            // Получение значения для "registrationDate"
+            String getPlayerSQL = "SELECT registrationDate FROM player_information WHERE uuid = ?";
+            try (PreparedStatement statement = connection.prepareStatement(getPlayerSQL)) {
+                statement.setString(1, playerUUID.toString());
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (resultSet.next()) {
                         return resultSet.getDate("registrationDate");
