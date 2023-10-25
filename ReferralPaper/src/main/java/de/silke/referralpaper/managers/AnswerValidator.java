@@ -1,15 +1,13 @@
 package de.silke.referralpaper.managers;
 
 import de.silke.referralpaper.Main;
-import de.silke.referralpaper.database.PlayerInfoDatabaseConnection;
-import org.bukkit.Bukkit;
+import de.silke.referralpaper.utils.Levenshtein;
 
 import java.util.List;
 import java.util.UUID;
 
 public class AnswerValidator {
     public static final List<String> negativeAnswers = Main.plugin.getConfig().getStringList("answers.negative");
-    private static final PlayerInfoDatabaseConnection playerInfoDatabase = Main.plugin.getPlayerInfoDatabaseConnection();
 
     /**
      * Проверить, является ли ответ игрока положительным
@@ -19,9 +17,12 @@ public class AnswerValidator {
      * @return true - если игрок есть в базе данных, иначе false
      */
     public static boolean isRealPlayer(String answer) {
-        UUID answerPlayer = Bukkit.getOfflinePlayer(answer).getUniqueId();
-
-        return playerInfoDatabase.containsPlayer(answerPlayer).join() != null;
+        try {
+            UUID playerUUID = Main.plugin.getPlayerInfoDatabaseConnection().getPlayerUUID(answer).join();
+            return Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(playerUUID).join();
+        } catch (NullPointerException exception) {
+            return false;
+        }
     }
 
     /**
@@ -32,6 +33,14 @@ public class AnswerValidator {
      * @return true - если ответ игрока равен тире, иначе false
      */
     public static boolean isNoAnswer(String answer) {
-        return negativeAnswers.contains(answer);
+        for (String negativeAnswer : negativeAnswers) {
+            int distance = Levenshtein.calculateDistance(answer, negativeAnswer);
+
+            // Расстояние 2
+            if (distance <= 2) {
+                return true;
+            }
+        }
+        return false;
     }
 }
