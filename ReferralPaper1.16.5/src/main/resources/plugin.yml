@@ -1,0 +1,35 @@
+name: ReferralPaper
+version: '${project.version}'
+main: de.silke.referralpaper.Main
+api-version: '1.16'
+load: STARTUP
+depend: [LuckPerms]
+authors: [Silke]
+description: Реферальная система на ядро Paper 1.16.5
+website: github.com/FruitCraftDev
+commands:
+  invites:
+    description: Посмотреть свои приглашения
+    usage: /<command>
+    aliases: [ invite, referral ]
+    default: true
+    permission: referralpaper.invites
+  admininvites:
+    description: Посмотреть приглашения других игроков
+    usage: /<command> [player]
+    aliases: [ admininvite, adminreferral, ainv ]
+    default: op
+    permission: referralpaper.admin
+permissions:
+  referralpaper.*:
+    description: Полный доступ к командам плагина
+    default: op
+    children:
+      referralpaper.invites: true
+      referralpaper.admin: true
+  referralpaper.invites:
+    description: Посмотреть свои приглашения
+    default: true
+  referralpaper.admin:
+    description: Посмотреть приглашения других игроков
+    default: op

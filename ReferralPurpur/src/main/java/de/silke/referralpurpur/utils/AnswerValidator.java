@@ -1,7 +1,6 @@
-package de.silke.referralpaper.managers;
+package de.silke.referralpurpur.utils;
 
-import de.silke.referralpaper.Main;
-import de.silke.referralpaper.utils.Levenshtein;
+import de.silke.referralpurpur.Main;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,11 +17,14 @@ public class AnswerValidator {
      */
     public static boolean isRealPlayer(String answer) {
         try {
-            UUID playerUUID = Main.plugin.getPlayerInfoDatabaseConnection().getPlayerUUID(answer).join();
-            return Main.plugin.getPlayerInfoDatabaseConnection().containsPlayer(playerUUID).join();
+            UUID playerUUID = Main.plugin.getPlayerInfoDatabase().getPlayerUUID(answer).join();
+            if (playerUUID != null) {
+                return Main.plugin.getPlayerInfoDatabase().containsPlayer(playerUUID).join();
+            }
         } catch (NullPointerException exception) {
             return false;
         }
+        return false;
     }
 
     /**
@@ -37,7 +39,12 @@ public class AnswerValidator {
             int distance = Levenshtein.calculateDistance(answer, negativeAnswer);
 
             // Расстояние 2
+            // Чем меньше расстояние, тем больше совпадение
             if (distance <= 2) {
+                return true;
+            }
+
+            if (answer.equalsIgnoreCase(negativeAnswer)) {
                 return true;
             }
         }
