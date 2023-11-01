@@ -2,7 +2,6 @@ package de.silke.referralpaper.timecounter;
 
 import de.silke.referralpaper.Main;
 import lombok.Data;
-import org.bukkit.Bukkit;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -21,22 +20,17 @@ public class PlayerTimeManager {
      */
     public void playerLogin(UUID playerUUID) {
         if (!playerTimes.containsKey(playerUUID)) {
-            Main.log.info("Игрок " + Bukkit.getOfflinePlayer(playerUUID).getName() + " не найден в playerTimes, добавляем его туда");
             playerTimes.put(playerUUID, new PlayerTime(playerUUID));
         }
 
         PlayerTime playerTime = playerTimes.get(playerUUID);
-        Main.log.info("Устанавливаем время входа игрока " + Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join() + " в " + System.currentTimeMillis() + " мс");
         playerTime.setLoginTime(System.currentTimeMillis());
 
         if (!playerStartTimes.containsKey(playerUUID)) {
-            Main.log.info("Игрок " + Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join() + " не найден в playerStartTimes, добавляем его туда");
             playerStartTimes.put(playerUUID, System.currentTimeMillis());
         }
 
         if (Main.plugin.getPlayerInfoDatabase().containsPlayer(playerUUID).join()) {
-            // Добавляем время игры в базу данных
-            Main.log.info("Добавляем время игры игрока " + Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join() + " в БД");
             Main.plugin.getPlayerInfoDatabase().addTimePlayed(playerUUID, playerTime.getTotalPlaytime());
         }
     }
@@ -69,7 +63,6 @@ public class PlayerTimeManager {
     public void updatePlayerTime(UUID playerUUID) {
         if (playerTimes.containsKey(playerUUID)) {
             PlayerTime playerTime = playerTimes.get(playerUUID);
-            Main.log.info("Игрок " + Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join() + " есть в playerTimes и он " + (playerTime.isLoggedIn() ? "залогинен" : "не залогинен"));
 
             if (playerTime.isLoggedIn()) {
                 long logoutTime = System.currentTimeMillis();
@@ -79,12 +72,9 @@ public class PlayerTimeManager {
                 playerTime.setLoggedIn(true);
 
                 if (Main.plugin.getPlayerInfoDatabase().containsPlayer(playerUUID).join()) {
-                    Main.log.info("Обновление времени игры игрока " + playerUUID + " в БД");
                     Main.plugin.getPlayerInfoDatabase().addTimePlayed(playerUUID, playerTime.getTotalPlaytime());
                 }
             }
-        } else {
-            Main.log.info("Игрок " + Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join() + " не найден в playerTimes");
         }
     }
 

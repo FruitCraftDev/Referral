@@ -175,7 +175,6 @@ public class ReferralQuestionConversation {
                 }
 
                 if (Main.plugin.getPlayerInfoDatabase().getTimePlayed(playerUUID).join() == null || Main.plugin.getPlayerInfoDatabase().getTimePlayed(playerUUID).join() <= 0L) {
-                    Main.log.info("Время игры игрока " + player.getName() + " не найдено в БД, устанавливаем 20 секунд");
                     Main.plugin.getPlayerInfoDatabase().setTimePlayed(playerUUID, 20L).join();
                 }
             }

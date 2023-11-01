@@ -472,7 +472,6 @@ public class PlayerInfoDatabase {
                             // Установить время игры в 10 миллисекунд, чтобы не было ошибки при конвертации в дни, часы, минуты и секунды
                             setTimePlayed(uuid, 10L).join();
                         } else {
-                            Main.log.info("Время игры игрока " + Bukkit.getOfflinePlayer(uuid).getName() + " найдено в БД");
                             future.complete(timePlayed);
                         }
                     } else {

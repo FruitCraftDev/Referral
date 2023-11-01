@@ -16,7 +16,6 @@ public class StartTimeCounterListener implements Listener {
         Player player = event.getPlayer();
         UUID playerUUID = player.getUniqueId();
 
-        Main.log.info("Отмечаем время входа игрока в игру");
         Main.plugin.getPlayerTimeManager().playerLogin(playerUUID);
         Main.plugin.getPlayerTimeManager().getPlayerStartTimes().put(playerUUID, System.currentTimeMillis());
     }
