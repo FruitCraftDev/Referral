@@ -31,23 +31,16 @@ public class PlayerDataItem {
         }
 
         UUID playerUUID = player.getUniqueId();
-        String role = LuckPermsConnector.getGroup(player);
+        String playerName = Main.plugin.getReferralsDatabase().getPlayerName(playerUUID).join();
         String invitedBy = Main.plugin.getPlayerInfoDatabase().getReferredPlayerName(playerUUID).join();
         String timePlayed = AmountConverter.getFormattedTimePlayed(player);
         long timePlayedFromDatabase = Main.plugin.getPlayerInfoDatabase().getTimePlayed(playerUUID).join();
         int invites = Main.plugin.getReferralsDatabase().getAmountOfTimesUsed(playerUUID).join();
 
-        switch (role) {
-            case "default":
-                meta.displayName(Component.text(ChatColor.WHITE + player.getName()));
-                break;
-            case "content":
-                meta.displayName(Component.text(ChatColor.GREEN + player.getName()));
-                break;
-            case "admin":
-            case "director":
-                meta.displayName(Component.text(ChatColor.RED + player.getName()));
-                break;
+        if (LuckPermsConnector.getGroupPrefix(playerUUID) != null) {
+            meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', LuckPermsConnector.getPrefixColor(playerUUID) + playerName)));
+        } else {
+            meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', "&7" + playerName)));
         }
 
         if (invitedBy != null) {

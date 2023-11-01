@@ -44,18 +44,10 @@ public class ReferralOwnerPlayerItem {
         // Дополнительная информация
         String extraInfoWithoutInvited = ChatColor.GRAY + " (ПКМ обновить)";
 
-
-        switch (role) {
-            case "default":
-                meta.displayName(Component.text(ChatColor.WHITE + playerName + (invites > 0 ? extraInfoWithInvited : extraInfoWithoutInvited)));
-                break;
-            case "content":
-                meta.displayName(Component.text(ChatColor.GREEN + playerName + (invites > 0 ? extraInfoWithInvited : extraInfoWithoutInvited)));
-                break;
-            case "admin":
-            case "director":
-                meta.displayName(Component.text(ChatColor.RED + playerName + (invites > 0 ? extraInfoWithInvited : extraInfoWithoutInvited)));
-                break;
+        if (LuckPermsConnector.getGroupPrefix(playerUUID) != null) {
+            meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', LuckPermsConnector.getPrefixColor(playerUUID) + playerName + (invites > 0 ? extraInfoWithInvited : extraInfoWithoutInvited))));
+        } else {
+            meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', "&7" + playerName + (invites > 0 ? extraInfoWithInvited : extraInfoWithoutInvited))));
         }
 
         // Роль игрока

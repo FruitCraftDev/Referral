@@ -27,7 +27,6 @@ public class MentionedPlayerItem {
         }
 
         String playerName = Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join();
-        String role = LuckPermsConnector.getGroup(playerUUID);
         String dateOfRegistration = AmountConverter.getFormattedRegistrationDatePlayed(playerUUID);
         String timePlayed = AmountConverter.getFormattedTimePlayed(playerUUID);
         boolean isContains = Main.plugin.getReferralsDatabase().containsPlayerWithReward(player.getUniqueId(), playerUUID).join();
@@ -35,17 +34,10 @@ public class MentionedPlayerItem {
         // Дополнительная информация
         String getAwardInfo = ChatColor.LIGHT_PURPLE + " (награда)";
 
-        switch (role) {
-            case "default":
-                meta.displayName(Component.text(ChatColor.WHITE + playerName + (!isContains ? getAwardInfo : "")));
-                break;
-            case "content":
-                meta.displayName(Component.text(ChatColor.GREEN + playerName + (!isContains ? getAwardInfo : "")));
-                break;
-            case "admin":
-            case "director":
-                meta.displayName(Component.text(ChatColor.RED + playerName + (!isContains ? getAwardInfo : "")));
-                break;
+        if (LuckPermsConnector.getGroupPrefix(playerUUID) != null) {
+            meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', LuckPermsConnector.getPrefixColor(playerUUID) + playerName + (isContains ? getAwardInfo : ""))));
+        } else {
+            meta.displayName(Component.text(ChatColor.translateAlternateColorCodes('&', "&7" + playerName + (isContains ? getAwardInfo : ""))));
         }
 
         if (dateOfRegistration != null) {
