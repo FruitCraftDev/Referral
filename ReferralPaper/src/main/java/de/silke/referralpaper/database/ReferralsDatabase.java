@@ -362,9 +362,7 @@ public class ReferralsDatabase {
     @SuppressWarnings("unchecked")
     public CompletableFuture<Boolean> containsPlayerWithReward(UUID referralOwnerUUID, UUID playerUUID) {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-
         String sql = "SELECT playerRewardsReceived FROM referrals WHERE referralOwnerUUID = ?";
-        final String nick = Main.plugin.getPlayerInfoDatabase().getPlayerName(playerUUID).join();
 
         connectionPool.getConnection().thenAccept(connection -> {
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -373,18 +371,30 @@ public class ReferralsDatabase {
                     if (resultSet.next()) {
                         String playersWithRewardJson = resultSet.getString("playerRewardsReceived");
                         List<String> playersWithReward = JsonSerializer.deserializeFromJSON(playersWithRewardJson);
-                        future.complete(playersWithReward.contains(nick));
+                        boolean containsPlayer = playersWithReward.contains(playerUUID.toString());
+                        future.complete(containsPlayer);
                     } else {
                         future.complete(false);
                     }
+                } catch (SQLException e) {
+                    Main.log.severe("REFERRALS_DATABASE: Ошибка при проверке наличия игрока с наградой в базе данных");
+                    future.completeExceptionally(e);
                 }
             } catch (SQLException e) {
-                Main.log.severe("REFERRALS_DATABASE: Ошибка при проверке наличия игрока с наградой в базе данных");
+                Main.log.severe("REFERRALS_DATABASE: Ошибка при подготовке запроса для проверки игрока с наградой: " + e.getMessage());
                 future.completeExceptionally(e);
+            } finally {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    Main.log.severe("REFERRALS_DATABASE: Ошибка при закрытии соединения: " + e.getMessage());
+                }
             }
         });
+
         return future;
     }
+
 
     /**
      * Установить игроков с приглашённым игроком
