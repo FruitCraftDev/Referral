@@ -47,4 +47,24 @@ public class LuckPermsConnector {
         }
         return "default";
     }
+
+    public static String getGroupPrefix(UUID playerUUID) {
+        if (provider != null) {
+            LuckPerms api = provider.getProvider();
+            UserManager userManager = api.getUserManager();
+            CompletableFuture<User> userFuture = userManager.loadUser(playerUUID);
+            return userFuture.join().getCachedData().getMetaData().getPrefix();
+        }
+        return "";
+    }
+
+    public static String getPrefixColor(UUID playerUUID) {
+        if (provider != null) {
+            LuckPerms api = provider.getProvider();
+            UserManager userManager = api.getUserManager();
+            CompletableFuture<User> userFuture = userManager.loadUser(playerUUID);
+            return userFuture.join().getCachedData().getMetaData().getPrefix().substring(0, 2);
+        }
+        return "";
+    }
 }

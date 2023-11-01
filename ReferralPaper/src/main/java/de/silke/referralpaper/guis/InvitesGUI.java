@@ -68,43 +68,43 @@ public class InvitesGUI extends ChestGui {
         });
 
         String isInvited = Main.plugin.getPlayerInfoDatabase().getReferredPlayerName(playerUUID).join();
-        if (isInvited != null) {
-            List<String> invitedPlayerNames = Main.plugin.getReferralsDatabase().getPlayersUsedReferralNick(playerUUID).join();
-            Set<String> uniqueNames = new HashSet<>(invitedPlayerNames);
+        List<String> invitedPlayerNames = Main.plugin.getReferralsDatabase().getPlayersUsedReferralNick(playerUUID).join();
+        Set<String> uniqueNames = new HashSet<>(invitedPlayerNames);
 
-            int availableSlots = 9;
-            int xCoord = 1;
-            int yCoord = 1;
+        int availableSlots = 9;
+        int xCoord = 1;
+        int yCoord = 1;
 
-            for (String playerName : uniqueNames) {
-                List<String> playersWhomReceivedAward = Main.plugin.getReferralsDatabase().getPlayerRewardsReceived(playerUUID).join();
-                UUID joinedPlayerUUID = Main.plugin.getPlayerInfoDatabase().getPlayerUUID(playerName).join();
-                GuiItem item = new GuiItem(MentionedPlayerItem.getHead(player, joinedPlayerUUID).getItem(), event -> {
-                    if (event.getClick().isRightClick()) {
-                        if (!playersWhomReceivedAward.contains(playerName)) {
-                            Main.plugin.getReferralsDatabase().addPlayerWithReward(playerUUID, playerName).join();
-                            RewardGiver.giveReward(player);
-                            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
-                            reOpen(player);
-                        }
-                    }
-                });
-
-                pane.addItem(item, xCoord, yCoord);
-                xCoord += 1;
-
-                // Если координата X больше или равна количеству доступных слотов, то переходим на следующую строку
-                if (xCoord >= availableSlots - 1) {
-                    xCoord = 1;
-                    yCoord += 1;
-                }
-            }
-        } else {
+        if (isInvited == null) {
             GuiItem notInvitedItem = new GuiItem(NotInvitedItem.getItem().getItem(), event -> {
                 player.closeInventory();
                 new ReferralQuestionConversation(player);
             });
-            pane.addItem(notInvitedItem, 4, 2);
+            pane.addItem(notInvitedItem, 5, 0);
+        }
+
+        for (String playerName : uniqueNames) {
+            List<String> playersWhomReceivedAward = Main.plugin.getReferralsDatabase().getPlayerRewardsReceived(playerUUID).join();
+            UUID joinedPlayerUUID = Main.plugin.getPlayerInfoDatabase().getPlayerUUID(playerName).join();
+            GuiItem item = new GuiItem(MentionedPlayerItem.getHead(player, joinedPlayerUUID).getItem(), event -> {
+                if (event.getClick().isRightClick()) {
+                    if (!playersWhomReceivedAward.contains(playerName)) {
+                        Main.plugin.getReferralsDatabase().addPlayerWithReward(playerUUID, playerName).join();
+                        RewardGiver.giveReward(player);
+                        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+                        reOpen(player);
+                    }
+                }
+            });
+
+            pane.addItem(item, xCoord, yCoord);
+            xCoord += 1;
+
+            // Если координата X больше или равна количеству доступных слотов, то переходим на следующую строку
+            if (xCoord >= availableSlots - 1) {
+                xCoord = 1;
+                yCoord += 1;
+            }
         }
         pane.addItem(playerDataItem, 4, 0);
         pane.addItem(ExplanationItem.getItem(), 4, 5);
